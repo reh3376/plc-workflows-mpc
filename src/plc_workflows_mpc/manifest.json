@@ -1,0 +1,102 @@
+{
+  "adapter_id": "plc-workflows-mpc",
+  "name": "PLC Workflows MPC Adapter",
+  "version": "0.1.0",
+  "type": "INGESTION",
+  "protocol": "ethernet_ip",
+  "tier": "OT",
+  "capabilities": {
+    "read": true,
+    "write": true,
+    "subscribe": true,
+    "backfill": false,
+    "discover": true
+  },
+  "data_contract": {
+    "schema_ref": "forge://schemas/plc-workflows-mpc/v0.1.0",
+    "output_format": "contextual_record",
+    "context_fields": [
+      "equipment_id",
+      "loop_id"
+    ]
+  },
+  "health_check_interval_ms": 5000,
+  "connection_params": [
+    {
+      "name": "forge_hub_endpoint",
+      "description": "Forge hub gRPC endpoint the spoke registers with and exchanges data through (e.g. grpc://localhost:50051).",
+      "required": true,
+      "secret": false,
+      "default": "grpc://localhost:50051"
+    },
+    {
+      "name": "plc_path",
+      "description": "Rockwell Logix EtherNet/IP path 'ip[/slot]' (e.g. 192.168.1.10/1), addressed via pycomm3. Leave empty to operate purely hub-mediated.",
+      "required": false,
+      "secret": false
+    },
+    {
+      "name": "control_period_s",
+      "description": "MPC control period in seconds (how often the controller computes a move).",
+      "required": false,
+      "secret": false,
+      "default": "5.0"
+    },
+    {
+      "name": "rearm_holdoff_s",
+      "description": "Seconds the PLC link must be continuously healthy before the supervisor (re)arms and takes the loop (anti-flap / auto-revert hold-off).",
+      "required": false,
+      "secret": false,
+      "default": "30.0"
+    },
+    {
+      "name": "heartbeat_timeout_s",
+      "description": "The PLC heartbeat must advance within this many seconds or the link is considered unhealthy.",
+      "required": false,
+      "secret": false,
+      "default": "2.0"
+    },
+    {
+      "name": "sp_min",
+      "description": "Soft lower clamp on the written setpoint (the PLC enforces the hard clamp).",
+      "required": false,
+      "secret": false
+    },
+    {
+      "name": "sp_max",
+      "description": "Soft upper clamp on the written setpoint (the PLC enforces the hard clamp).",
+      "required": false,
+      "secret": false
+    },
+    {
+      "name": "dry_run",
+      "description": "If true, read and solve but never write (commissioning mode). Defaults to true for safety.",
+      "required": false,
+      "secret": false,
+      "default": "true"
+    },
+    {
+      "name": "verify_ssl",
+      "description": "Verify TLS/SSL certificates for the hub connection.",
+      "required": false,
+      "secret": false,
+      "default": "true"
+    }
+  ],
+  "auth_methods": [
+    "none"
+  ],
+  "metadata": {
+    "spoke": "plc-workflows-mpc",
+    "role": "apc_supervisory_controller",
+    "plc_platform": "rockwell_logix",
+    "plc_transport": "ethernet_ip_pycomm3",
+    "pillars": [
+      "forge_core_integration",
+      "plc_sdlc",
+      "advanced_process_control",
+      "plant_wide_optimization"
+    ],
+    "predecessor": "plc-gbt"
+  }
+}

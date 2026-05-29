@@ -1,0 +1,70 @@
+[project]
+name = "plc-workflows-mpc"
+version = "0.1.0"
+description = "Forge spoke module for OT advanced process control (MPC/APC), PLC SDLC, and plant-wide optimization"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [{ name = "reh3376" }]
+dependencies = [
+    "forge-platform>=0.1.0",
+    "pydantic>=2.10.0",
+    "numpy>=2.0",
+    "scipy>=1.13",
+]
+
+[project.optional-dependencies]
+# Runtime control stack — the Rockwell EtherNet/IP link and the QP solver.
+# Installed when building out Pillar 3 (Phase 2). See docs/ARCHITECTURE.md.
+apc = [
+    "pycomm3>=1.2.14",
+    "osqp>=1.0",
+]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+]
+
+# Forge is private and not published to PyPI. To resolve `forge-platform`
+# from git instead of a local editable checkout, uncomment the source below
+# (requires repo access). For local development, prefer:
+#   uv pip install -e /Users/reh3376/forge
+# [tool.uv.sources]
+# forge-platform = { git = "https://github.com/reh3376/forge.git" }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plc_workflows_mpc"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+# Forge ships no py.typed marker, so its symbols are Any to mypy; allow the
+# adapter to subclass the (untyped) forge base classes.
+disallow_subclassing_any = false
+
+[[tool.mypy.overrides]]
+module = ["forge.*", "scipy.*", "pycomm3.*", "osqp.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

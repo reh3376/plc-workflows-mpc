@@ -1,0 +1,213 @@
+{
+  "specification_id": "plc-workflows-mpc-v0.1.0",
+  "specification_type": "adapter_registration",
+  "title": "PLC Workflows MPC Adapter Specification",
+  "description": "Forge spoke for OT advanced process control. Acts as an APC controller: subscribes to process variables from the hub, computes MPC/APC and plant-wide optimization moves, writes setpoints back to the PLC layer, and emits every control decision as a governed ContextualRecord. Also owns the PLC SDLC (git workflows + CI/CD) pillar.",
+  "version": "0.1.0",
+  "effective_date": "2026-05-29",
+  "author": "Roger Henley",
+  "status": "draft",
+  "adapter": {
+    "adapter_id": "plc-workflows-mpc",
+    "name": "PLC Workflows MPC Adapter",
+    "description": "Advanced process control controller spoke (MPC/APC instantiation, control-strategy selection, plant-wide optimization) plus PLC SDLC tooling. Supervisory/advisory controller for Rockwell Logix PLCs over EtherNet/IP.",
+    "version": "0.1.0",
+    "type": "INGESTION",
+    "protocol": "ethernet_ip",
+    "tier": "OT",
+    "capabilities": {
+      "read": true,
+      "write": true,
+      "subscribe": true,
+      "backfill": false,
+      "discover": true
+    }
+  },
+  "data_sources": [
+    {
+      "name": "Control Moves",
+      "description": "Manipulated-variable moves computed by the MPC/APC controllers.",
+      "interface": "collect",
+      "entity_type": "OperationalEvent",
+      "event_type": "control_move"
+    },
+    {
+      "name": "Model Identifications",
+      "description": "Process models identified from operating data (FOPDT/SOPDT/state-space) and their fit quality.",
+      "interface": "collect",
+      "entity_type": "OperationalEvent",
+      "event_type": "model_identified"
+    },
+    {
+      "name": "Strategy Recommendations",
+      "description": "Recommended control strategy (PID/APC/MPC) for a given process.",
+      "interface": "collect",
+      "entity_type": "OperationalEvent",
+      "event_type": "strategy_recommended"
+    },
+    {
+      "name": "Optimization Decisions",
+      "description": "Plant-wide optimization setpoint targets toward a user-defined objective.",
+      "interface": "collect",
+      "entity_type": "OperationalEvent",
+      "event_type": "optimization_decision"
+    },
+    {
+      "name": "Process Variables",
+      "description": "PV/CV/SP value changes subscribed from the hub (fed by OT/historian spokes).",
+      "interface": "subscribe",
+      "entity_type": "OperationalEvent",
+      "event_type": "process_variable_update"
+    },
+    {
+      "name": "Setpoint Write-back",
+      "description": "Setpoint / MV writes pushed back to the PLC layer via the hub (or direct EtherNet/IP).",
+      "interface": "write",
+      "entity_type": "OperationalEvent",
+      "event_type": "setpoint_write"
+    },
+    {
+      "name": "Managed Control Loops",
+      "description": "Enumeration of the control loops / controllers this spoke manages.",
+      "interface": "discover",
+      "entity_type": "ManufacturingUnit",
+      "event_type": "loop_discovery"
+    }
+  ],
+  "domain_mappings": [
+    {
+      "source_entity": "control_event",
+      "forge_model": "ContextualRecord",
+      "mapping": {
+        "loop_id": "context.extra.loop_id",
+        "controller_type": "context.extra.controller_type",
+        "equipment_id": "context.equipment_id",
+        "area": "context.area",
+        "site": "context.site",
+        "operating_mode": "context.operating_mode",
+        "cv_tag": "context.extra.cv_tag",
+        "mv_tag": "context.extra.mv_tag (also source.tag_path)",
+        "dv_tag": "context.extra.dv_tag",
+        "sp_tag": "context.extra.sp_tag",
+        "event_type": "context.extra.event_type",
+        "value": "value.raw",
+        "engineering_units": "value.engineering_units",
+        "timestamp": "timestamp.source_time"
+      }
+    }
+  ],
+  "connection_requirements": [
+    {
+      "name": "forge_hub_endpoint",
+      "type": "url",
+      "required": true,
+      "default": "grpc://localhost:50051",
+      "description": "Forge hub gRPC endpoint the spoke registers with."
+    },
+    {
+      "name": "plc_path",
+      "type": "string",
+      "required": false,
+      "description": "Rockwell Logix EtherNet/IP path 'ip[/slot]' (via pycomm3). Empty = hub-mediated only."
+    },
+    {
+      "name": "control_period_s",
+      "type": "number",
+      "required": false,
+      "default": 5.0,
+      "description": "MPC control period in seconds."
+    },
+    {
+      "name": "rearm_holdoff_s",
+      "type": "number",
+      "required": false,
+      "default": 30.0,
+      "description": "Seconds the link must be healthy before the supervisor (re)arms."
+    },
+    {
+      "name": "heartbeat_timeout_s",
+      "type": "number",
+      "required": false,
+      "default": 2.0,
+      "description": "PLC heartbeat must advance within this many seconds."
+    },
+    {
+      "name": "sp_min",
+      "type": "number",
+      "required": false,
+      "description": "Soft lower clamp on the written setpoint (PLC enforces the hard clamp)."
+    },
+    {
+      "name": "sp_max",
+      "type": "number",
+      "required": false,
+      "description": "Soft upper clamp on the written setpoint (PLC enforces the hard clamp)."
+    },
+    {
+      "name": "dry_run",
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "description": "If true, read and solve but never write (commissioning). Default true for safety."
+    },
+    {
+      "name": "verify_ssl",
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "description": "Verify TLS/SSL certificates for the hub connection."
+    }
+  ],
+  "context_fields": [
+    "equipment_id",
+    "area",
+    "site",
+    "operating_mode",
+    "loop_id",
+    "controller_type",
+    "cv_tag",
+    "mv_tag",
+    "dv_tag",
+    "sp_tag",
+    "event_type"
+  ],
+  "quality_rules": [
+    {
+      "name": "equipment_id_required",
+      "rule": "Every control record must carry an equipment_id.",
+      "enforcement": "error"
+    },
+    {
+      "name": "loop_id_required",
+      "rule": "Every control record must identify its control loop via context.extra.loop_id.",
+      "enforcement": "error"
+    },
+    {
+      "name": "timestamp_preferred",
+      "rule": "Control events should include a timestamp; defaults to now(utc) if missing.",
+      "enforcement": "warn"
+    }
+  ],
+  "known_limitations": [
+    {
+      "limitation": "Phase 0 (inject-only) — no live hub gRPC or EtherNet/IP connections.",
+      "mitigation": "Phase 2 implements live subscribe/write I/O via pycomm3 + the supervisory state machine."
+    },
+    {
+      "limitation": "MPC/APC, strategy selection, optimization, and PLC SDLC are interface-only stubs.",
+      "mitigation": "Phases 1–4 implement each pillar; see docs/ARCHITECTURE.md."
+    }
+  ],
+  "decision_quality_value": {
+    "summary": "Governed, auditable advanced process control: every controller move and optimization decision is recorded with full operational context.",
+    "examples": [
+      "Audit every setpoint change made by an MPC controller, with the loop, mode, and objective that drove it.",
+      "Correlate control-strategy recommendations with downstream quality and throughput.",
+      "Trace plant-wide optimization decisions back to the user-defined objective (e.g. maximize proof gallons)."
+    ]
+  },
+  "integrity": {
+    "spec_hash": null,
+    "hash_state": "pending_review"
+  }
+}

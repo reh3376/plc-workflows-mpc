@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-type-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout plc-workflows-mpc
+        uses: actions/checkout@v4
+
+      # Forge is private and not on PyPI. Check it out as a sibling and install
+      # it editable so `forge-platform` resolves. Requires a token/deploy key
+      # with read access to reh3376/forge stored as the FORGE_REPO_TOKEN secret.
+      - name: Checkout forge
+        uses: actions/checkout@v4
+        with:
+          repository: reh3376/forge
+          path: forge
+          token: ${{ secrets.FORGE_REPO_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Create venv and install
+        run: |
+          uv venv
+          uv pip install -e ./forge
+          uv pip install -e ".[dev]"
+
+      - name: Ruff
+        run: uv run ruff check src tests
+
+      - name: Mypy
+        run: uv run mypy src
+
+      - name: Pytest
+        run: uv run pytest -v

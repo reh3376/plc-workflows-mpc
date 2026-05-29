@@ -7,7 +7,6 @@ are present as (not-yet-implemented) stubs.
 import pytest
 
 from plc_workflows_mpc.apc import ControlStrategy, MpcConfig, PlantModel
-from plc_workflows_mpc.apc.identification import identify_process_model
 from plc_workflows_mpc.apc.mpc import instantiate_mpc
 from plc_workflows_mpc.optimization import ObjectiveSense, build_optimizer
 from plc_workflows_mpc.plc_io import CycleInputs, open_logix_link
@@ -43,7 +42,6 @@ def test_mpc_config_defaults():
 @pytest.mark.parametrize(
     "thunk",
     [
-        lambda: identify_process_model(None),
         lambda: build_optimizer(None),  # type: ignore[arg-type]
         lambda: open_logix_link("192.168.1.10/1", None),
         lambda: generate_pipeline({}),

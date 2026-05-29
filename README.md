@@ -105,7 +105,7 @@ The runtime control stack — the Rockwell EtherNet/IP link (`pycomm3`) and the 
 | Phase | Pillar | Scope |
 |-------|--------|-------|
 | **0** *(done)* | Forge core | Adapter contract, manifest, FACTS spec, tests, CI — inject-only skeleton. |
-| **1** | APC | Process model identification (FOPDT/SOPDT/state-space) + control-strategy selection. |
+| **1** *(done)* | APC | FOPDT/SOPDT identification (NLS, BIC selection), step detection, PID/APC/MPC strategy recommendation. |
 | **2** | APC | MPC/APC controller instantiation on OSQP; supervisory state machine + live EtherNet/IP (pycomm3) and hub I/O. |
 | **3** | SDLC | Git-native L5X/ACD↔text workflows + CI/CD pipeline templates for PLC code. |
 | **4** | Optimization | Plant-wide RTO with user-defined objective functions coordinating controllers. |

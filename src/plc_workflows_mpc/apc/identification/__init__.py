@@ -1,48 +1,40 @@
 """Process model identification.
 
-Identify a dynamic process model from operating / step-test data so the
-selection and MPC stages have something to reason about. Generalizes the
-control-loop analysis from the predecessor project (FOPDT / SOPDT fitting,
-step detection, fit-quality scoring).
+Identify a dynamic process model (FOPDT / SOPDT) from step-test or operating
+data, so the selection stage can recommend a control strategy and the MPC stage
+has a model to predict with.
 
-Phase 1 implements :class:`ModelIdentifier`; Phase 0 defines the contract.
+Phase 1 ships a :func:`identify_process_model` (NLS over FOPDT and SOPDT with
+BIC selection), a :func:`detect_steps` helper to slice operating data into
+step-test windows, and a concrete :class:`LeastSquaresIdentifier`.
 """
 
 from __future__ import annotations
 
-import abc
-from dataclasses import dataclass, field
-from typing import Any
+from plc_workflows_mpc.apc.identification.base import ModelIdentifier, ProcessModel
+from plc_workflows_mpc.apc.identification.fit import (
+    LeastSquaresIdentifier,
+    StepTest,
+    fit_fopdt,
+    fit_sopdt,
+    identify_process_model,
+)
+from plc_workflows_mpc.apc.identification.models import (
+    fopdt_step_response,
+    sopdt_step_response,
+)
+from plc_workflows_mpc.apc.identification.step_detection import StepEvent, detect_steps
 
-
-@dataclass(frozen=True)
-class ProcessModel:
-    """An identified dynamic process model.
-
-    Attributes:
-        model_type: e.g. ``"FOPDT"``, ``"SOPDT"``, ``"state_space"``.
-        parameters: model parameters (e.g. gain, time_constant, dead_time).
-        fit_quality: goodness-of-fit metric (e.g. R²), if computed.
-        metadata: free-form provenance (loop_id, data window, method).
-    """
-
-    model_type: str
-    parameters: dict[str, float]
-    fit_quality: float | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-class ModelIdentifier(abc.ABC):
-    """Identifies a :class:`ProcessModel` from time-series operating data."""
-
-    @abc.abstractmethod
-    def identify(self, time_series: Any) -> ProcessModel:
-        """Fit a process model to the supplied time series."""
-
-
-def identify_process_model(time_series: Any) -> ProcessModel:
-    """Convenience entry point — implemented in Phase 1."""
-    raise NotImplementedError("Process model identification lands in Phase 1.")
-
-
-__all__ = ["ProcessModel", "ModelIdentifier", "identify_process_model"]
+__all__ = [
+    "ProcessModel",
+    "ModelIdentifier",
+    "LeastSquaresIdentifier",
+    "StepTest",
+    "StepEvent",
+    "detect_steps",
+    "fit_fopdt",
+    "fit_sopdt",
+    "identify_process_model",
+    "fopdt_step_response",
+    "sopdt_step_response",
+]

@@ -2,7 +2,11 @@
 
 A **Forge spoke module** for OT-side **advanced process control**, **PLC software-development lifecycle (SDLC)**, and **plant-wide optimization**.
 
-> Status: **All four pillars shipped (Phases 0–4 complete).** The forge adapter (inject-only *and* live), FOPDT/SOPDT identification + PID/APC/MPC selection (Phase 1), OSQP-backed `LinearMpcController` + `SupervisorRunner` + `LogixLink` (Phase 2), L5X ↔ JSON SDLC tooling + GitHub Actions generator + PLC-side templates (Phase 3), and now the plant-wide RTO layer — SLSQP-backed `ScipyOptimizer` over `OptimizationProblem` (`PlantObjective`, `LoopVariable`, `Constraint`) plus the threaded periodic `PlantCoordinator` runtime that emits one decision record per cycle (Phase 4). 141 tests, ruff + mypy strict clean. See [Roadmap](#roadmap).
+> Status: **All four pillars shipped (Phases 0–4 complete).** The forge adapter (inject-only *and* live), FOPDT/SOPDT identification + PID/APC/MPC selection (Phase 1), OSQP-backed `LinearMpcController` + `SupervisorRunner` + `LogixLink` (Phase 2), L5X ↔ JSON SDLC tooling + GitHub Actions generator + PLC-side templates (Phase 3), and now the plant-wide RTO layer — SLSQP-backed `ScipyOptimizer` over `OptimizationProblem` (`PlantObjective`, `LoopVariable`, `Constraint`) plus the threaded periodic `PlantCoordinator` runtime that emits one decision record per cycle (Phase 4). 141 tests, ruff + mypy strict clean.
+>
+> **Picking the project back up?** Read [`docs/STATUS.md`](docs/STATUS.md) — current state, how to verify locally, and a prioritized backlog of the integration items that remain.
+>
+> See also: [Roadmap](#roadmap).
 
 ---
 
@@ -111,6 +115,8 @@ The runtime control stack — the Rockwell EtherNet/IP link (`pycomm3`) and the 
 | **2** *(done)* | APC | OSQP-backed `LinearMpcController` (feedforward + offset-free observer), `SupervisorRunner` state machine, `LogixLink` over EtherNet/IP, live adapter wiring. |
 | **3** *(done)* | SDLC | L5X ↔ JSON conversion (deterministic, round-trip), validation + structural diff, `python -m plc_workflows_mpc.sdlc` CLI, GitHub Actions workflow generator, PLC-side ST/ladder/tag templates. |
 | **4** *(done)* | Optimization | `OptimizationProblem` (objective + variables + constraints), `ScipyOptimizer` (SLSQP), `PlantCoordinator` periodic runtime with state callback, setpoint publisher, and governed decision records. |
+
+For the integration backlog beyond Phase 4 (multi-loop coordinator wiring, end-to-end test, forge-hub registration verification, real-PLC smoke test, examples), see [`docs/STATUS.md`](docs/STATUS.md).
 
 ## License
 

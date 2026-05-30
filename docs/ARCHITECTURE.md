@@ -86,9 +86,10 @@ A constrained **linear** MPC over a discrete state-space model
   drives zero steady-state error under unmeasured loads and plant/model mismatch.
 - Control-cycle API: `reset` (bumpless arm) → `estimate` → `solve` → `commit`.
 
-The `A, Bu, Bd, C` model comes from **system identification** (Pillar 3,
-`apc/identification/`); the controller code is the easy part — identifying and
-validating the process model *is* the APC project.
+The `A, Bu, Bd, C` model comes from **system identification** — FOPDT/SOPDT
+fits via NLS with BIC selection and step detection live in
+`apc/identification/` (shipped in Phase 1). The controller code is the easy
+part — identifying and validating the process model *is* the APC project.
 
 ## 5. PLC-side contract (Rockwell Logix tags)
 
@@ -119,16 +120,19 @@ permissive, and re-arm timers.
 
 ## 6. Package map
 
+Annotations: **[impl]** = concrete implementation shipped, **[stub]** = abstract
+interfaces / dataclasses only, slated for the phase shown. See Section 7.
+
 ```
 plc_workflows_mpc/
-  adapter.py, config.py, context.py, record_builder.py, manifest.json   # Forge contract
-  apc/identification/   process model ID (FOPDT/SOPDT/state-space)
-  apc/selection/        control-strategy recommendation (PID/APC/MPC)
-  apc/mpc/              MPC formulation + controller (PlantModel, OSQP)
-  optimization/         plant-wide RTO toward a user objective
-  sdlc/                 PLC git workflows / CI-CD / format conversion
-  supervisor/           IDLE/ARMING/RUNNING control state machine + link health
-  plc_io/               Rockwell EtherNet/IP link (pycomm3)
+  adapter.py, config.py, context.py, record_builder.py, manifest.json   # [impl] Forge contract (inject-only)
+  apc/identification/   [impl, Phase 1] process model ID (FOPDT/SOPDT, NLS + BIC, step detection)
+  apc/selection/        [impl, Phase 1] control-strategy recommendation (PID/APC/MPC heuristics)
+  apc/mpc/              [stub, Phase 2] MPC formulation + controller (PlantModel, OSQP)
+  optimization/         [stub, Phase 4] plant-wide RTO toward a user objective
+  sdlc/                 [stub, Phase 3] PLC git workflows / CI-CD / format conversion
+  supervisor/           [stub, Phase 2] IDLE/ARMING/RUNNING control state machine + link health
+  plc_io/               [stub, Phase 2] Rockwell EtherNet/IP link (pycomm3)
 ```
 
 ## 7. Roadmap

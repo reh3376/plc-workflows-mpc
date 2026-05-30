@@ -2,7 +2,7 @@
 
 A **Forge spoke module** for OT-side **advanced process control**, **PLC software-development lifecycle (SDLC)**, and **plant-wide optimization**.
 
-> Status: **Phase 0 — scaffold.** The forge adapter contract is implemented (inject-only); the control, optimization, and SDLC pillars are defined as interfaces and built out in later phases. See [Roadmap](#roadmap).
+> Status: **Phase 1 — APC identification + selection complete.** The forge adapter contract (inject-only), FOPDT/SOPDT process model identification (NLS with BIC selection), and PID/APC/MPC control-strategy recommendation are implemented. The MPC controller, supervisor runtime, Rockwell EtherNet/IP link, plant-wide optimization, and PLC SDLC tooling remain interface stubs for later phases. See [Roadmap](#roadmap).
 
 ---
 
@@ -66,11 +66,11 @@ src/plc_workflows_mpc/
   config.py            Pydantic connection / timing / safety config + Logix tag map
   context.py           raw control event → RecordContext
   record_builder.py    → ContextualRecord
-  apc/                 Pillar 3: identification, selection, mpc (interfaces + stubs)
-  optimization/        Pillar 4: plant-wide RTO (interfaces + stubs)
-  sdlc/                Pillar 2: git workflows / CI-CD / format conversion (interfaces + stubs)
-  supervisor/          Control runtime: IDLE/ARMING/RUNNING state machine (interfaces + stubs)
-  plc_io/              Rockwell EtherNet/IP link via pycomm3 (interfaces + stubs)
+  apc/                 Pillar 3: identification + selection IMPLEMENTED; mpc (OSQP) is interface-only
+  optimization/        Pillar 4: plant-wide RTO (interface-only)
+  sdlc/                Pillar 2: git workflows / CI-CD / format conversion (interface-only)
+  supervisor/          Control runtime: IDLE/ARMING/RUNNING state machine (interface-only)
+  plc_io/              Rockwell EtherNet/IP link via pycomm3 (interface-only)
 specs/
   plc-workflows-mpc.facts.json   FACTS governance spec
 tests/                 pytest suite

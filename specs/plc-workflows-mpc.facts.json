@@ -194,8 +194,8 @@
       "mitigation": "Phase 2 implements live subscribe/write I/O via pycomm3 + the supervisory state machine."
     },
     {
-      "limitation": "MPC/APC, strategy selection, optimization, and PLC SDLC are interface-only stubs.",
-      "mitigation": "Phases 1–4 implement each pillar; see docs/ARCHITECTURE.md."
+      "limitation": "MPC controller instantiation, supervisor runtime, Rockwell PLC I/O, plant-wide optimization, and PLC SDLC tooling are interface-only stubs.",
+      "mitigation": "Phase 1 has implemented FOPDT/SOPDT process model identification and PID/APC/MPC control-strategy selection; Phases 2–4 implement the remaining pillars. See docs/ARCHITECTURE.md."
     }
   ],
   "decision_quality_value": {

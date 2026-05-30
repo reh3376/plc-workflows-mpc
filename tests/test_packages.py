@@ -9,7 +9,6 @@ import pytest
 from plc_workflows_mpc.apc import ControlStrategy, MpcConfig, PlantModel
 from plc_workflows_mpc.optimization import ObjectiveSense, build_optimizer
 from plc_workflows_mpc.plc_io import CycleInputs
-from plc_workflows_mpc.sdlc import generate_pipeline
 from plc_workflows_mpc.supervisor import Mode
 
 
@@ -42,7 +41,6 @@ def test_mpc_config_defaults():
     "thunk",
     [
         lambda: build_optimizer(None),  # type: ignore[arg-type]
-        lambda: generate_pipeline({}),
     ],
 )
 def test_phase_later_stubs_raise(thunk):

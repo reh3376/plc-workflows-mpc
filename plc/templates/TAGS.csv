@@ -1,0 +1,21 @@
+tag_name,data_type,scope,written_by,description
+MPC_Enable,BOOL,controller,PLC event/sequence,Operator/sequence grants MPC control on the trigger event
+MPC_Active,BOOL,controller,MPC service,Service confirms it currently holds the loop
+MPC_Heartbeat,DINT,controller,MPC service,Incremented every poll by the service; PLC watchdogs it
+PLC_Heartbeat,DINT,controller,PLC routine,Incremented every scan; service reads to confirm link/PLC alive
+MPC_Heartbeat_Last,DINT,controller,PLC routine,Previous heartbeat value for change-of-state detection
+MPC_Service_Alive,BOOL,controller,PLC routine,TRUE while incoming heartbeat keeps advancing
+MPC_Rearm_OK,BOOL,controller,PLC routine,TRUE once enabled+alive for the hold-off time
+MPC_Permissive,BOOL,controller,PLC routine,Master gate; MPC may drive the loop only when TRUE
+Operator_Override,BOOL,controller,HMI,Forces local PID control regardless of MPC state
+MPC_Temp_SP,REAL,controller,MPC service,Candidate setpoint computed by the MPC
+Reactor_Temp_SP,REAL,controller,PLC routine,Setpoint actually used by the regulatory PID
+Reactor_Temp_SP_Local,REAL,controller,operator/recipe,Fail-safe local setpoint used when MPC not permitted
+Reactor_Temp_SP_Active,REAL,controller,PLC routine,Mirror of live PID SP; read by service for bumpless arm
+MPC_CV_Target,REAL,controller,operator/recipe,Target the MPC drives the CV toward
+MPC_SP_Min,REAL,controller,engineering,Hard lower clamp on any accepted MPC setpoint
+MPC_SP_Max,REAL,controller,engineering,Hard upper clamp on any accepted MPC setpoint
+Reactor_Temp,REAL,controller,field/instrument,Controlled variable (process variable) regulated by the loop
+Feed_Flow,REAL,controller,field/instrument,Measured disturbance variable fed forward by the MPC
+MPC_HB_Watchdog_T,TIMER,controller,PLC routine,Service-alive watchdog (PRE=2000 ms)
+MPC_Rearm_T,TIMER,controller,PLC routine,Re-arm hold-off timer (PRE=30000 ms)

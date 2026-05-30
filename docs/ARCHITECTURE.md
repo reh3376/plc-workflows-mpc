@@ -114,9 +114,11 @@ permissive, and re-arm timers.
 | `Reactor_Temp` (CV) | REAL | instrument | Controlled/process variable regulated |
 | `Feed_Flow` (DV) | REAL | instrument | Measured disturbance fed forward |
 
-> The reference PLC-side artifacts (Structured Text routine, ladder equivalent,
-> tag CSV) for this contract live at `~/Documents/dailylog/plc-mpc/mpc-supervisor/plc`.
-> Pillar 2 (PLC SDLC) will ship generalized, version-controlled templates of these.
+> Customer-facing templates of the Structured Text routine, the ladder
+> equivalent, and the tag CSV ship in this repo under
+> [`plc/templates/`](../plc/templates/) — copy them into your Studio 5000
+> project, rename the per-loop tags, and call the routine from a 100 ms
+> Periodic Task. See `plc/templates/README.md` for the apply checklist.
 
 ## 6. Package map
 
@@ -130,7 +132,7 @@ plc_workflows_mpc/
   apc/selection/        [impl, Phase 1] control-strategy recommendation (PID/APC/MPC heuristics)
   apc/mpc/              [impl, Phase 2] LinearMpcController on OSQP + plant_model_from_identified
   optimization/         [stub, Phase 4] plant-wide RTO toward a user objective
-  sdlc/                 [stub, Phase 3] PLC git workflows / CI-CD / format conversion
+  sdlc/                 [impl, Phase 3] L5X ↔ JSON conversion + validate/diff + CI workflow generator + CLI
   supervisor/           [impl, Phase 2] HeartbeatLinkHealth + SupervisorRunner (IDLE/ARMING/RUNNING)
   plc_io/               [impl, Phase 2] LogixLink — Rockwell EtherNet/IP via pycomm3
 ```
@@ -142,5 +144,5 @@ plc_workflows_mpc/
 | **0** *(done)* | Forge core | Adapter contract, manifest, FACTS spec, interfaces, tests, CI — inject-only skeleton. |
 | **1** *(done)* | APC | FOPDT/SOPDT identification (NLS, BIC selection), step detection, PID/APC/MPC recommendation. |
 | **2** *(done)* | APC | OSQP-backed `LinearMpcController` (feedforward + offset-free observer), `SupervisorRunner` (IDLE/ARMING/RUNNING + bumpless), `LogixLink` (pycomm3 EtherNet/IP), adapter live wiring with thread-safe record queue. |
-| **3** | SDLC | Git-native L5X/ACD↔text workflows + CI/CD pipeline templates + PLC-side tag/interlock templates. |
+| **3** *(done)* | SDLC | Deterministic L5X ↔ JSON converter (round-trip-preserving, structural diff), `python -m plc_workflows_mpc.sdlc` CLI, GitHub Actions workflow generator, PLC-side Structured Text + ladder + tag CSV templates under `plc/templates/`. |
 | **4** | Optimization | Plant-wide RTO coordinating controllers toward user-defined objectives. |

@@ -11,6 +11,7 @@ dependencies = [
     "pydantic>=2.10.0",
     "numpy>=2.0",
     "scipy>=1.13",
+    "lxml>=5.0",
 ]
 
 [project.optional-dependencies]
@@ -62,7 +63,7 @@ files = ["src"]
 disallow_subclassing_any = false
 
 [[tool.mypy.overrides]]
-module = ["forge.*", "scipy.*", "pycomm3.*", "osqp.*"]
+module = ["forge.*", "scipy.*", "pycomm3.*", "osqp.*", "lxml.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

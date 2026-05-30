@@ -2,7 +2,7 @@
 
 A **Forge spoke module** for OT-side **advanced process control**, **PLC software-development lifecycle (SDLC)**, and **plant-wide optimization**.
 
-> Status: **Phase 2 — supervisory MPC + live Rockwell EtherNet/IP link complete.** The forge adapter (inject-only *and* live), FOPDT/SOPDT identification and strategy selection (Phase 1), and now the full Phase 2 stack — OSQP-backed `LinearMpcController` with measured-disturbance feedforward and offset-free observer, `HeartbeatLinkHealth` + `SupervisorRunner` (IDLE/ARMING/RUNNING with bumpless transfer), and `LogixLink` (pycomm3 EtherNet/IP) — are implemented and unit-tested (91 tests, ruff + mypy strict clean). Plant-wide optimization (Phase 4) and PLC SDLC tooling (Phase 3) remain interface stubs. See [Roadmap](#roadmap).
+> Status: **Phase 3 — PLC SDLC complete.** Phases 0–3 are shipped: the forge adapter (inject-only *and* live), FOPDT/SOPDT identification + strategy selection (Phase 1), the OSQP-backed `LinearMpcController` + `SupervisorRunner` + `LogixLink` stack (Phase 2), and now the PLC SDLC tooling — L5X ↔ JSON converter, `python -m plc_workflows_mpc.sdlc` CLI, GitHub Actions workflow generator, and customer-facing PLC-side templates (Structured Text routine, ladder description, tag CSV) under `plc/templates/`. Plant-wide optimization (Phase 4) remains an interface stub. 124 tests, ruff + mypy strict clean. See [Roadmap](#roadmap).
 
 ---
 
@@ -68,9 +68,11 @@ src/plc_workflows_mpc/
   record_builder.py    → ContextualRecord
   apc/                 Pillar 3: identification + selection + mpc (LinearMpcController on OSQP) IMPLEMENTED
   optimization/        Pillar 4: plant-wide RTO (interface-only)
-  sdlc/                Pillar 2: git workflows / CI-CD / format conversion (interface-only)
+  sdlc/                Pillar 2: L5X ↔ JSON, validate, diff, CI generator + `python -m …sdlc` CLI — IMPLEMENTED
   supervisor/          Control runtime: IDLE/ARMING/RUNNING state machine — IMPLEMENTED
   plc_io/              Rockwell EtherNet/IP link via pycomm3 — IMPLEMENTED
+plc/
+  templates/           PLC-side artifacts (MPC_Supervisor.st, LADDER_DESCRIPTION.md, TAGS.csv, README.md)
 specs/
   plc-workflows-mpc.facts.json   FACTS governance spec
 tests/                 pytest suite
@@ -107,7 +109,7 @@ The runtime control stack — the Rockwell EtherNet/IP link (`pycomm3`) and the 
 | **0** *(done)* | Forge core | Adapter contract, manifest, FACTS spec, tests, CI — inject-only skeleton. |
 | **1** *(done)* | APC | FOPDT/SOPDT identification (NLS, BIC selection), step detection, PID/APC/MPC strategy recommendation. |
 | **2** *(done)* | APC | OSQP-backed `LinearMpcController` (feedforward + offset-free observer), `SupervisorRunner` state machine, `LogixLink` over EtherNet/IP, live adapter wiring. |
-| **3** | SDLC | Git-native L5X/ACD↔text workflows + CI/CD pipeline templates for PLC code. |
+| **3** *(done)* | SDLC | L5X ↔ JSON conversion (deterministic, round-trip), validation + structural diff, `python -m plc_workflows_mpc.sdlc` CLI, GitHub Actions workflow generator, PLC-side ST/ladder/tag templates. |
 | **4** | Optimization | Plant-wide RTO with user-defined objective functions coordinating controllers. |
 
 ## License

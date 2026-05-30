@@ -2,7 +2,7 @@
 
 A **Forge spoke module** for OT-side **advanced process control**, **PLC software-development lifecycle (SDLC)**, and **plant-wide optimization**.
 
-> Status: **Phase 1 — APC identification + selection complete.** The forge adapter contract (inject-only), FOPDT/SOPDT process model identification (NLS with BIC selection), and PID/APC/MPC control-strategy recommendation are implemented. The MPC controller, supervisor runtime, Rockwell EtherNet/IP link, plant-wide optimization, and PLC SDLC tooling remain interface stubs for later phases. See [Roadmap](#roadmap).
+> Status: **Phase 2 — supervisory MPC + live Rockwell EtherNet/IP link complete.** The forge adapter (inject-only *and* live), FOPDT/SOPDT identification and strategy selection (Phase 1), and now the full Phase 2 stack — OSQP-backed `LinearMpcController` with measured-disturbance feedforward and offset-free observer, `HeartbeatLinkHealth` + `SupervisorRunner` (IDLE/ARMING/RUNNING with bumpless transfer), and `LogixLink` (pycomm3 EtherNet/IP) — are implemented and unit-tested (91 tests, ruff + mypy strict clean). Plant-wide optimization (Phase 4) and PLC SDLC tooling (Phase 3) remain interface stubs. See [Roadmap](#roadmap).
 
 ---
 
@@ -62,15 +62,15 @@ This structure is adapted from the reference at `~/Documents/dailylog/plc-mpc/mp
 ```
 src/plc_workflows_mpc/
   manifest.json        Forge adapter manifest (OT tier, ethernet_ip, read/write/subscribe/discover)
-  adapter.py           PlcWorkflowsMpcAdapter — lifecycle + capability hooks (inject-only in Phase 0)
+  adapter.py           PlcWorkflowsMpcAdapter — forge contract; inject-only or supervisor-driven
   config.py            Pydantic connection / timing / safety config + Logix tag map
   context.py           raw control event → RecordContext
   record_builder.py    → ContextualRecord
-  apc/                 Pillar 3: identification + selection IMPLEMENTED; mpc (OSQP) is interface-only
+  apc/                 Pillar 3: identification + selection + mpc (LinearMpcController on OSQP) IMPLEMENTED
   optimization/        Pillar 4: plant-wide RTO (interface-only)
   sdlc/                Pillar 2: git workflows / CI-CD / format conversion (interface-only)
-  supervisor/          Control runtime: IDLE/ARMING/RUNNING state machine (interface-only)
-  plc_io/              Rockwell EtherNet/IP link via pycomm3 (interface-only)
+  supervisor/          Control runtime: IDLE/ARMING/RUNNING state machine — IMPLEMENTED
+  plc_io/              Rockwell EtherNet/IP link via pycomm3 — IMPLEMENTED
 specs/
   plc-workflows-mpc.facts.json   FACTS governance spec
 tests/                 pytest suite
@@ -106,7 +106,7 @@ The runtime control stack — the Rockwell EtherNet/IP link (`pycomm3`) and the 
 |-------|--------|-------|
 | **0** *(done)* | Forge core | Adapter contract, manifest, FACTS spec, tests, CI — inject-only skeleton. |
 | **1** *(done)* | APC | FOPDT/SOPDT identification (NLS, BIC selection), step detection, PID/APC/MPC strategy recommendation. |
-| **2** | APC | MPC/APC controller instantiation on OSQP; supervisory state machine + live EtherNet/IP (pycomm3) and hub I/O. |
+| **2** *(done)* | APC | OSQP-backed `LinearMpcController` (feedforward + offset-free observer), `SupervisorRunner` state machine, `LogixLink` over EtherNet/IP, live adapter wiring. |
 | **3** | SDLC | Git-native L5X/ACD↔text workflows + CI/CD pipeline templates for PLC code. |
 | **4** | Optimization | Plant-wide RTO with user-defined objective functions coordinating controllers. |
 

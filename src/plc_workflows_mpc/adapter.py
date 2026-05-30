@@ -17,17 +17,24 @@ reference: Rockwell Logix PLCs are addressed over EtherNet/IP via ``pycomm3``
 machine (:mod:`plc_workflows_mpc.supervisor`) with the PLC retaining full
 authority (watchdog, permissive, hard setpoint clamps).
 
-Phase 0 implements the full lifecycle and all four capability hooks in
-**inject-only** mode (mirroring forge's reference modules): records are supplied
-via ``inject_records()`` for unit testing, while live EtherNet/IP and hub gRPC
-I/O are deferred to later phases. This keeps the skeleton fully testable without
-hardware or a running hub.
+The adapter supports two operating modes:
+
+* **inject-only** — ``inject_records()`` feeds raw decision dicts directly; used
+  for unit tests and demos that have no live PLC. This is what Phase 0 shipped.
+* **live (supervisor-driven)** — attach a configured
+  :class:`~plc_workflows_mpc.supervisor.SupervisorRunner` via
+  :meth:`attach_supervisor`; ``start()`` launches it in a daemon thread, its
+  ``record_sink`` callback enqueues every decision, and :meth:`write` routes to
+  the supervisor's PLC link. This is what Phase 2 adds.
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
+import queue
+import threading
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -53,11 +60,14 @@ from forge.core.models.contextual_record import ContextualRecord
 
 from plc_workflows_mpc.config import PlcWorkflowsMpcConfig
 from plc_workflows_mpc.context import build_record_context
+from plc_workflows_mpc.plc_io.base import PlcLink
 from plc_workflows_mpc.record_builder import build_contextual_record
+from plc_workflows_mpc.supervisor.base import SupervisorService
 
 logger = logging.getLogger(__name__)
 
 _MANIFEST_PATH = Path(__file__).parent / "manifest.json"
+_SUPERVISOR_JOIN_TIMEOUT_S = 5.0
 
 
 def _load_manifest() -> AdapterManifest:
@@ -92,12 +102,34 @@ class PlcWorkflowsMpcAdapter(
     def __init__(self) -> None:
         super().__init__()
         self._config: PlcWorkflowsMpcConfig | None = None
-        self._pending_records: list[dict[str, Any]] = []
+        self._pending: queue.Queue[dict[str, Any]] = queue.Queue()
         self._subscriptions: dict[str, dict[str, Any]] = {}
         self._control_loops: list[dict[str, Any]] = []
         self._writes: list[dict[str, Any]] = []
         self._startup_time: datetime | None = None
         self._last_healthy: datetime | None = None
+        self._supervisor: SupervisorService | None = None
+        self._supervisor_thread: threading.Thread | None = None
+        self._plc_link: PlcLink | None = None
+
+    # ── Live-mode wiring ───────────────────────────────────────
+
+    def attach_supervisor(self, supervisor: SupervisorService) -> None:
+        """Register a :class:`SupervisorService` to drive on ``start()``.
+
+        The supervisor's ``record_sink`` must route to :meth:`queue_record` so
+        that decisions land in the adapter's pending queue for ``collect()``.
+        If the supervisor carries a ``plc_link`` attribute, it is captured so
+        :meth:`write` can route to the live PLC.
+        """
+        self._supervisor = supervisor
+        plc_link = getattr(supervisor, "plc_link", None)
+        if isinstance(plc_link, PlcLink):
+            self._plc_link = plc_link
+
+    def queue_record(self, raw_event: dict[str, Any]) -> None:
+        """Thread-safe sink for decision dicts emitted by the supervisor."""
+        self._pending.put(raw_event)
 
     # ── Lifecycle ──────────────────────────────────────────────
 
@@ -107,20 +139,37 @@ class PlcWorkflowsMpcAdapter(
         self._state = AdapterState.REGISTERED
 
     async def start(self) -> None:
-        """Begin operation. Phase 0 is inject-only; no live I/O yet."""
+        """Begin operation. If a supervisor is attached, launch its loop."""
         if self._config is None:
             raise RuntimeError("Adapter not configured — call configure() first")
         self._state = AdapterState.CONNECTING
-        # Phase 2 will open the hub gRPC channel + optional EtherNet/IP link here.
+        if self._supervisor is not None:
+            self._supervisor_thread = threading.Thread(
+                target=self._supervisor.run_forever,
+                name="plc-workflows-mpc-supervisor",
+                daemon=True,
+            )
+            self._supervisor_thread.start()
         self._state = AdapterState.HEALTHY
         self._startup_time = datetime.now(tz=UTC)
         self._last_healthy = self._startup_time
-        logger.info("plc-workflows-mpc adapter started (phase 0: inject-only)")
+        mode = "supervisor live" if self._supervisor is not None else "inject-only"
+        logger.info("plc-workflows-mpc adapter started (%s)", mode)
 
     async def stop(self) -> None:
-        """Graceful shutdown."""
-        self._pending_records.clear()
+        """Graceful shutdown — stop supervisor, drain queue, close PLC link."""
+        if self._supervisor is not None:
+            self._supervisor.stop()
+        if self._supervisor_thread is not None:
+            self._supervisor_thread.join(timeout=_SUPERVISOR_JOIN_TIMEOUT_S)
+            self._supervisor_thread = None
+        self._supervisor = None
+        self._plc_link = None
         self._subscriptions.clear()
+        # Drain any leftover pending records.
+        while not self._pending.empty():
+            with contextlib.suppress(queue.Empty):
+                self._pending.get_nowait()
         self._state = AdapterState.STOPPED
         logger.info("plc-workflows-mpc adapter stopped")
 
@@ -143,8 +192,11 @@ class PlcWorkflowsMpcAdapter(
 
     async def collect(self) -> AsyncIterator[ContextualRecord]:
         """Yield controller decisions / diagnostics as ContextualRecords."""
-        while self._pending_records:
-            raw_event = self._pending_records.pop(0)
+        while True:
+            try:
+                raw_event = self._pending.get_nowait()
+            except queue.Empty:
+                return
             context = build_record_context(raw_event)
             record = build_contextual_record(
                 raw_event=raw_event,
@@ -160,9 +212,12 @@ class PlcWorkflowsMpcAdapter(
     async def write(self, tag_path: str, value: Any, *, confirm: bool = True) -> bool:
         """Write a setpoint / MV move back to the PLC layer.
 
-        Phase 0 records the intended write and reports success; Phase 2 wires
-        this to the hub Write RPC (or direct EtherNet/IP via pycomm3).
+        In live mode (PLC link attached via the supervisor) the write goes
+        through the PLC link. Without a link, the intended write is queued for
+        introspection — preserving the Phase 0 testable behavior.
         """
+        if self._plc_link is not None:
+            return self._plc_link.write(tag_path, value)
         self._writes.append({"tag_path": tag_path, "value": value, "confirm": confirm})
         logger.info(
             "plc-workflows-mpc queued write: %s = %r (confirm=%s)", tag_path, value, confirm
@@ -200,9 +255,10 @@ class PlcWorkflowsMpcAdapter(
     # ── Testing / injection support ────────────────────────────
 
     def inject_records(self, raw_records: list[dict[str, Any]]) -> None:
-        """Inject raw control events for testing (Phase 0)."""
-        self._pending_records.extend(raw_records)
+        """Inject raw control events for testing (no supervisor required)."""
+        for record in raw_records:
+            self._pending.put(record)
 
     def register_control_loops(self, loops: list[dict[str, Any]]) -> None:
-        """Register control loops surfaced by ``discover()`` (Phase 0)."""
+        """Register control loops surfaced by ``discover()``."""
         self._control_loops.extend(loops)

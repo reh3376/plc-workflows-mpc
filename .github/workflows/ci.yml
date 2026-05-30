@@ -33,7 +33,7 @@ jobs:
         run: |
           uv venv
           uv pip install -e ./forge
-          uv pip install -e ".[dev]"
+          uv pip install -e ".[apc,dev]"
 
       - name: Ruff
         run: uv run ruff check src tests

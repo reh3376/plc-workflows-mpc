@@ -7,8 +7,8 @@ Three stages:
     strategy (PID / APC / MPC) for an identified process.
   * :mod:`plc_workflows_mpc.apc.mpc` — instantiate and run MPC controllers.
 
-Phase 1 ships ``identification`` and ``selection`` as concrete implementations
-(see their module docstrings). ``mpc`` is interface-only until Phase 2.
+Phases 1–2 ship all three submodules as concrete implementations
+(``identification``, ``selection``, ``mpc``). See their module docstrings.
 """
 
 from __future__ import annotations

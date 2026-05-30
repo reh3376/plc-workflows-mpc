@@ -128,11 +128,11 @@ plc_workflows_mpc/
   adapter.py, config.py, context.py, record_builder.py, manifest.json   # [impl] Forge contract (inject-only)
   apc/identification/   [impl, Phase 1] process model ID (FOPDT/SOPDT, NLS + BIC, step detection)
   apc/selection/        [impl, Phase 1] control-strategy recommendation (PID/APC/MPC heuristics)
-  apc/mpc/              [stub, Phase 2] MPC formulation + controller (PlantModel, OSQP)
+  apc/mpc/              [impl, Phase 2] LinearMpcController on OSQP + plant_model_from_identified
   optimization/         [stub, Phase 4] plant-wide RTO toward a user objective
   sdlc/                 [stub, Phase 3] PLC git workflows / CI-CD / format conversion
-  supervisor/           [stub, Phase 2] IDLE/ARMING/RUNNING control state machine + link health
-  plc_io/               [stub, Phase 2] Rockwell EtherNet/IP link (pycomm3)
+  supervisor/           [impl, Phase 2] HeartbeatLinkHealth + SupervisorRunner (IDLE/ARMING/RUNNING)
+  plc_io/               [impl, Phase 2] LogixLink — Rockwell EtherNet/IP via pycomm3
 ```
 
 ## 7. Roadmap
@@ -141,6 +141,6 @@ plc_workflows_mpc/
 |-------|--------|-------|
 | **0** *(done)* | Forge core | Adapter contract, manifest, FACTS spec, interfaces, tests, CI — inject-only skeleton. |
 | **1** *(done)* | APC | FOPDT/SOPDT identification (NLS, BIC selection), step detection, PID/APC/MPC recommendation. |
-| **2** | APC | MPC instantiation (OSQP), supervisory state machine, live EtherNet/IP (pycomm3) + hub I/O. |
+| **2** *(done)* | APC | OSQP-backed `LinearMpcController` (feedforward + offset-free observer), `SupervisorRunner` (IDLE/ARMING/RUNNING + bumpless), `LogixLink` (pycomm3 EtherNet/IP), adapter live wiring with thread-safe record queue. |
 | **3** | SDLC | Git-native L5X/ACD↔text workflows + CI/CD pipeline templates + PLC-side tag/interlock templates. |
 | **4** | Optimization | Plant-wide RTO coordinating controllers toward user-defined objectives. |

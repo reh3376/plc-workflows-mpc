@@ -190,12 +190,12 @@
   ],
   "known_limitations": [
     {
-      "limitation": "Phase 0 (inject-only) — no live hub gRPC or EtherNet/IP connections.",
-      "mitigation": "Phase 2 implements live subscribe/write I/O via pycomm3 + the supervisory state machine."
+      "limitation": "The adapter does not yet open hub gRPC streams on its own; the forge hub drives the AdapterBase contract.",
+      "mitigation": "The adapter implements configure/start/stop/health/collect/write/subscribe/discover; live PLC I/O over EtherNet/IP is wired through the SupervisorRunner attached at start()."
     },
     {
-      "limitation": "MPC controller instantiation, supervisor runtime, Rockwell PLC I/O, plant-wide optimization, and PLC SDLC tooling are interface-only stubs.",
-      "mitigation": "Phase 1 has implemented FOPDT/SOPDT process model identification and PID/APC/MPC control-strategy selection; Phases 2–4 implement the remaining pillars. See docs/ARCHITECTURE.md."
+      "limitation": "Plant-wide optimization (Phase 4) and PLC SDLC tooling (Phase 3) are interface-only stubs.",
+      "mitigation": "Phase 1 shipped FOPDT/SOPDT identification + PID/APC/MPC strategy selection. Phase 2 shipped the OSQP-backed LinearMpcController, the SupervisorRunner state machine, and the LogixLink (pycomm3 EtherNet/IP) link, plus live-mode adapter wiring. Phases 3 and 4 implement the remaining pillars; see docs/ARCHITECTURE.md."
     }
   ],
   "decision_quality_value": {

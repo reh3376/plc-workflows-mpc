@@ -1,13 +1,10 @@
 """Smoke tests for the pillar / runtime interface packages.
 
-These guard that the public contracts import and that the Phase-1+ entry points
-are present as (not-yet-implemented) stubs.
+Guards that the public contracts import and a few basic invariants hold.
 """
 
-import pytest
-
 from plc_workflows_mpc.apc import ControlStrategy, MpcConfig, PlantModel
-from plc_workflows_mpc.optimization import ObjectiveSense, build_optimizer
+from plc_workflows_mpc.optimization import ObjectiveSense
 from plc_workflows_mpc.plc_io import CycleInputs
 from plc_workflows_mpc.supervisor import Mode
 
@@ -35,17 +32,6 @@ def test_mpc_config_defaults():
     cfg = MpcConfig()
     assert cfg.prediction_horizon == 30
     assert cfg.control_horizon == 8
-
-
-@pytest.mark.parametrize(
-    "thunk",
-    [
-        lambda: build_optimizer(None),  # type: ignore[arg-type]
-    ],
-)
-def test_phase_later_stubs_raise(thunk):
-    with pytest.raises(NotImplementedError):
-        thunk()
 
 
 def test_plant_model_is_exported():

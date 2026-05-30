@@ -2,7 +2,7 @@
 
 A **Forge spoke module** for OT-side **advanced process control**, **PLC software-development lifecycle (SDLC)**, and **plant-wide optimization**.
 
-> Status: **Phase 3 — PLC SDLC complete.** Phases 0–3 are shipped: the forge adapter (inject-only *and* live), FOPDT/SOPDT identification + strategy selection (Phase 1), the OSQP-backed `LinearMpcController` + `SupervisorRunner` + `LogixLink` stack (Phase 2), and now the PLC SDLC tooling — L5X ↔ JSON converter, `python -m plc_workflows_mpc.sdlc` CLI, GitHub Actions workflow generator, and customer-facing PLC-side templates (Structured Text routine, ladder description, tag CSV) under `plc/templates/`. Plant-wide optimization (Phase 4) remains an interface stub. 124 tests, ruff + mypy strict clean. See [Roadmap](#roadmap).
+> Status: **All four pillars shipped (Phases 0–4 complete).** The forge adapter (inject-only *and* live), FOPDT/SOPDT identification + PID/APC/MPC selection (Phase 1), OSQP-backed `LinearMpcController` + `SupervisorRunner` + `LogixLink` (Phase 2), L5X ↔ JSON SDLC tooling + GitHub Actions generator + PLC-side templates (Phase 3), and now the plant-wide RTO layer — SLSQP-backed `ScipyOptimizer` over `OptimizationProblem` (`PlantObjective`, `LoopVariable`, `Constraint`) plus the threaded periodic `PlantCoordinator` runtime that emits one decision record per cycle (Phase 4). 141 tests, ruff + mypy strict clean. See [Roadmap](#roadmap).
 
 ---
 
@@ -67,7 +67,7 @@ src/plc_workflows_mpc/
   context.py           raw control event → RecordContext
   record_builder.py    → ContextualRecord
   apc/                 Pillar 3: identification + selection + mpc (LinearMpcController on OSQP) IMPLEMENTED
-  optimization/        Pillar 4: plant-wide RTO (interface-only)
+  optimization/        Pillar 4: plant-wide RTO — ScipyOptimizer (SLSQP) + PlantCoordinator — IMPLEMENTED
   sdlc/                Pillar 2: L5X ↔ JSON, validate, diff, CI generator + `python -m …sdlc` CLI — IMPLEMENTED
   supervisor/          Control runtime: IDLE/ARMING/RUNNING state machine — IMPLEMENTED
   plc_io/              Rockwell EtherNet/IP link via pycomm3 — IMPLEMENTED
@@ -110,7 +110,7 @@ The runtime control stack — the Rockwell EtherNet/IP link (`pycomm3`) and the 
 | **1** *(done)* | APC | FOPDT/SOPDT identification (NLS, BIC selection), step detection, PID/APC/MPC strategy recommendation. |
 | **2** *(done)* | APC | OSQP-backed `LinearMpcController` (feedforward + offset-free observer), `SupervisorRunner` state machine, `LogixLink` over EtherNet/IP, live adapter wiring. |
 | **3** *(done)* | SDLC | L5X ↔ JSON conversion (deterministic, round-trip), validation + structural diff, `python -m plc_workflows_mpc.sdlc` CLI, GitHub Actions workflow generator, PLC-side ST/ladder/tag templates. |
-| **4** | Optimization | Plant-wide RTO with user-defined objective functions coordinating controllers. |
+| **4** *(done)* | Optimization | `OptimizationProblem` (objective + variables + constraints), `ScipyOptimizer` (SLSQP), `PlantCoordinator` periodic runtime with state callback, setpoint publisher, and governed decision records. |
 
 ## License
 

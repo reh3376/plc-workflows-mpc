@@ -194,8 +194,8 @@
       "mitigation": "The adapter implements configure/start/stop/health/collect/write/subscribe/discover; live PLC I/O over EtherNet/IP is wired through the SupervisorRunner attached at start()."
     },
     {
-      "limitation": "Plant-wide optimization (Phase 4) is an interface-only stub.",
-      "mitigation": "Phase 1 shipped FOPDT/SOPDT identification + PID/APC/MPC strategy selection. Phase 2 shipped the OSQP-backed LinearMpcController, the SupervisorRunner state machine, and the LogixLink (pycomm3 EtherNet/IP) link, plus live-mode adapter wiring. Phase 3 shipped the L5X ↔ JSON converter + CLI + GitHub Actions workflow generator + PLC-side ST/ladder/tag templates. Phase 4 implements plant-wide optimization; see docs/ARCHITECTURE.md."
+      "limitation": "All four pillars (Phases 0–4) are implemented. Outstanding integration items live in the project roadmap, not in this spec.",
+      "mitigation": "Phase 1: FOPDT/SOPDT identification + PID/APC/MPC strategy selection. Phase 2: OSQP-backed LinearMpcController + SupervisorRunner + LogixLink (pycomm3 EtherNet/IP) + live adapter wiring. Phase 3: L5X ↔ JSON conversion + python -m plc_workflows_mpc.sdlc CLI + GitHub Actions generator + PLC-side ST/ladder/tag templates. Phase 4: ScipyOptimizer (SLSQP) over OptimizationProblem + threaded PlantCoordinator periodic runtime emitting governed decision records. See docs/ARCHITECTURE.md."
     }
   ],
   "decision_quality_value": {

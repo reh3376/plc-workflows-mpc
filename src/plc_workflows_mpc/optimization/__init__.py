@@ -1,61 +1,82 @@
 """Pillar 4 — Plant-wide system optimization.
 
-The top layer: coordinate all individual controllers toward a user-defined
-plant objective (e.g. "maximize proof gallons produced") subject to process
+The top layer: coordinate all individual MPC controllers toward a user-defined
+plant objective (e.g. *"maximize proof gallons produced"*) subject to process
 and business constraints. This real-time optimization (RTO) layer sits above
-the MPC controllers and adjusts their setpoints.
+the MPC controllers and adjusts their setpoints on a slow cadence (typically
+seconds to minutes) while the MPCs track those setpoints on a fast cadence.
 
-Phase 4 implements :class:`PlantOptimizer`; Phase 0 defines the contract.
+Phase 4 ships:
+
+* the public types — :class:`LoopVariable`, :class:`Constraint`,
+  :class:`PlantObjective`, :class:`OptimizationProblem`,
+  :class:`OptimizationResult`, and the :class:`PlantOptimizer` ABC
+  (see :mod:`plc_workflows_mpc.optimization.base`);
+* a concrete :class:`ScipyOptimizer` backed by SLSQP — handles smooth
+  nonlinear objectives and constraints out of the box (see
+  :mod:`plc_workflows_mpc.optimization.scipy_backend`);
+* a :class:`PlantCoordinator` runtime that periodically solves the problem
+  and emits decision records, mirroring the supervisor's threading model
+  (see :mod:`plc_workflows_mpc.optimization.coordinator`).
+
+Wire :class:`PlantCoordinator`'s ``setpoint_publisher`` to whatever pushes
+targets into your supervisors, and its ``record_sink`` to the spoke's
+``queue_record`` so every plant-wide decision becomes a governed
+``ContextualRecord``.
 """
 
 from __future__ import annotations
 
-import abc
-from dataclasses import dataclass, field
-from enum import StrEnum
-from typing import Any
+from plc_workflows_mpc.optimization.base import (
+    Constraint,
+    ConstraintFunction,
+    ConstraintSense,
+    LoopValues,
+    LoopVariable,
+    ObjectiveFunction,
+    ObjectiveSense,
+    OptimizationProblem,
+    OptimizationResult,
+    PlantObjective,
+    PlantOptimizer,
+)
+from plc_workflows_mpc.optimization.coordinator import (
+    CoordinatorConfig,
+    PlantCoordinator,
+    RecordSink,
+    SetpointPublisher,
+    StateProvider,
+)
+from plc_workflows_mpc.optimization.scipy_backend import ScipyOptimizer
 
 
-class ObjectiveSense(StrEnum):
-    """Whether the plant objective is maximized or minimized."""
+def build_optimizer(objective: PlantObjective | None = None, **_kwargs: object) -> PlantOptimizer:
+    """Return a sensible default :class:`PlantOptimizer` (``ScipyOptimizer``).
 
-    MAXIMIZE = "maximize"
-    MINIMIZE = "minimize"
-
-
-@dataclass(frozen=True)
-class OptimizationObjective:
-    """A user-defined plant-wide optimization objective.
-
-    Attributes:
-        name: human-readable objective name (e.g. "proof_gallons").
-        sense: maximize or minimize.
-        target_variable: the variable the objective evaluates.
-        constraints: process/business constraints to respect.
+    ``objective`` is accepted for compatibility with earlier signatures but is
+    not used to pick a backend — the SLSQP backend handles both linear and
+    nonlinear objectives. Pass solver knobs via keyword arguments if desired.
     """
-
-    name: str
-    sense: ObjectiveSense
-    target_variable: str
-    constraints: dict[str, Any] = field(default_factory=dict)
-
-
-class PlantOptimizer(abc.ABC):
-    """Coordinates controller setpoints to optimize a plant objective."""
-
-    @abc.abstractmethod
-    def optimize(self, plant_state: dict[str, float]) -> dict[str, float]:
-        """Return recommended setpoints per loop given current plant state."""
-
-
-def build_optimizer(objective: OptimizationObjective) -> PlantOptimizer:
-    """Build a :class:`PlantOptimizer` for an objective — Phase 4."""
-    raise NotImplementedError("Plant-wide optimization lands in Phase 4.")
+    return ScipyOptimizer(**_kwargs)  # type: ignore[arg-type]
 
 
 __all__ = [
     "ObjectiveSense",
-    "OptimizationObjective",
+    "ConstraintSense",
+    "LoopValues",
+    "ObjectiveFunction",
+    "ConstraintFunction",
+    "LoopVariable",
+    "Constraint",
+    "PlantObjective",
+    "OptimizationProblem",
+    "OptimizationResult",
     "PlantOptimizer",
+    "ScipyOptimizer",
+    "CoordinatorConfig",
+    "PlantCoordinator",
+    "StateProvider",
+    "SetpointPublisher",
+    "RecordSink",
     "build_optimizer",
 ]

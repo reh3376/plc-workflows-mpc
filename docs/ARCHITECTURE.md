@@ -147,13 +147,17 @@ plc_workflows_mpc/
 | **3** *(done)* | SDLC | Deterministic L5X ↔ JSON converter (round-trip-preserving, structural diff), `python -m plc_workflows_mpc.sdlc` CLI, GitHub Actions workflow generator, PLC-side Structured Text + ladder + tag CSV templates under `plc/templates/`. |
 | **4** *(done)* | Optimization | `OptimizationProblem` model (`PlantObjective`, `LoopVariable`, `Constraint`), SLSQP-backed `ScipyOptimizer`, threaded periodic `PlantCoordinator` runtime that emits `optimization_decision` / `optimization_fault` records and publishes recommended setpoints. |
 
+### Testing the forge contract
+
+A dedicated harness — [`tests/harness/FakeForgeHub`](../tests/harness/hub.py) — wires forge's own `InMemoryServicer` + `InMemoryChannel` + `GrpcTransportAdapter` around our `PlcWorkflowsMpcAdapter` so the full lifecycle (`Register → Configure → Start → Collect-stream → Stop`) and the Pydantic ↔ proto round-trip can be exercised end-to-end without standing up the real hub. Four scenario files cover happy-path control plane (`test_forge_lifecycle.py`), manifest + record serialization (`test_forge_serialization.py`), supervisor-driven live mode (`test_forge_live_mode.py`), and error paths — register rejected, channel closed mid-stream, out-of-order calls (`test_forge_error_paths.py`). The in-memory path is sufficient for spoke-side validation; real-gRPC bytes are forge's concern. Writing this harness surfaced and fixed a context-builder bug that was silently dropping rich payload fields from `mode_change` and `optimization_decision` records before they reached the hub.
+
 ### Beyond Phase 4 — integration backlog
 
 All four pillars are implemented at the *component* level; what remains is glue and proof-of-life. The full prioritized list with rationale lives in [`STATUS.md`](STATUS.md); the headline items are:
 
 1. **`build_supervisor()` factory** that constructs the LogixLink → MpcController → SupervisorRunner stack from a single config — removes the biggest first-customer hurdle.
 2. **Coordinator ↔ supervisor bridge** so a single `PlantCoordinator` can drive multiple `SupervisorRunner`s (the "maximize proof gallons across processes" pattern).
-3. **End-to-end integration test** wiring `PlantCoordinator → N FakeSupervisors → FakeAdapter` and asserting that records and setpoints flow through every layer.
-4. **Forge hub registration verification** against a live forge hub.
+3. **End-to-end integration test** wiring spoke layers through the forge contract — ✅ *done* via the harness above.
+4. **Forge hub registration verification** — wire-contract done in-memory; **live-hub smoke against `docker-compose` stack still open**.
 5. **Real-PLC commissioning smoke test** + a `docs/COMMISSIONING.md` procedure.
 6. **CI prerequisite**: the `FORGE_REPO_TOKEN` secret must be configured on the GitHub repo before CI can pass.

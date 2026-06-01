@@ -2,7 +2,7 @@
 
 A **Forge spoke module** for OT-side **advanced process control**, **PLC software-development lifecycle (SDLC)**, and **plant-wide optimization**.
 
-> Status: **All four pillars shipped (Phases 0–4 complete).** The forge adapter (inject-only *and* live), FOPDT/SOPDT identification + PID/APC/MPC selection (Phase 1), OSQP-backed `LinearMpcController` + `SupervisorRunner` + `LogixLink` (Phase 2), L5X ↔ JSON SDLC tooling + GitHub Actions generator + PLC-side templates (Phase 3), and now the plant-wide RTO layer — SLSQP-backed `ScipyOptimizer` over `OptimizationProblem` (`PlantObjective`, `LoopVariable`, `Constraint`) plus the threaded periodic `PlantCoordinator` runtime that emits one decision record per cycle (Phase 4). 141 tests, ruff + mypy strict clean.
+> Status: **All four pillars shipped + forge-core integration harness in place.** Phases 0–4 deliver the adapter, FOPDT/SOPDT identification + PID/APC/MPC selection, OSQP-backed `LinearMpcController` + `SupervisorRunner` + `LogixLink`, L5X ↔ JSON SDLC tooling + GitHub Actions generator + PLC-side templates, and the SLSQP-backed `ScipyOptimizer` + threaded periodic `PlantCoordinator`. The forge hub ↔ spoke wire contract is now exercised end-to-end via `tests/harness/FakeForgeHub` (manifest + every `ContextualRecord` variant round-trips through forge's `pydantic_to_proto` / `InMemoryChannel` / `InMemoryServicer`). 180 tests, ruff + mypy strict clean.
 >
 > **Picking the project back up?** Read [`docs/STATUS.md`](docs/STATUS.md) — current state, how to verify locally, and a prioritized backlog of the integration items that remain.
 >
@@ -105,6 +105,16 @@ uv run pytest -v
 ```
 
 The runtime control stack — the Rockwell EtherNet/IP link (`pycomm3`) and the QP solver (`osqp`) — lives in the optional `apc` extra and is needed once Pillar 3 implementation lands (Phase 2): `uv pip install -e ".[apc]"`.
+
+### Verifying the forge wire contract
+
+A test harness simulates forge-core in memory using forge's own `InMemoryServicer` / `InMemoryChannel` / `GrpcTransportAdapter`. Run just the integration tests with:
+
+```bash
+PYTHONPATH=/path/to/forge/src .venv/bin/pytest -q tests/test_forge_*.py
+```
+
+See [`docs/STATUS.md`](docs/STATUS.md) for the design and [`tests/harness/hub.py`](tests/harness/hub.py) for `FakeForgeHub` itself.
 
 ## Roadmap
 

@@ -4,15 +4,15 @@
 
 | | |
 |--|--|
-| **Last updated** | 2026-05-30 |
-| **Last commit on `main`** | `0cb20d7` — *feat(optimization): implement Phase 4 — plant-wide RTO* |
-| **Phase complete** | Phase 4 of 4 — all four pillars implemented at component level |
-| **Quality gates** | `ruff` ✓ • `mypy --strict` ✓ (33 source files) • `pytest` ✓ (141 passed, 1 unrelated warning) |
+| **Last updated** | 2026-06-01 |
+| **Last commit on `main`** | *latest after Phase 5 commit — forge-core test harness + context.py pass-through fix* |
+| **Phase complete** | Phase 4 of 4 — all four pillars; **Phase 5 (forge-core integration harness) now done too** |
+| **Quality gates** | `ruff` ✓ • `mypy --strict` ✓ (33 source files) • `pytest` ✓ (180 passed, 1 unrelated warning) |
 | **Branch model** | trunk on `main`, conventional commits, no open branches |
 
 ## Where we are
 
-The four pillars described in the [README](../README.md) and [ARCHITECTURE](ARCHITECTURE.md) are all implemented as concrete, unit-tested code:
+The four pillars described in the [README](../README.md) and [ARCHITECTURE](ARCHITECTURE.md) are all implemented as concrete, unit-tested code; the forge hub ↔ spoke wire contract is now verified end-to-end via an in-memory harness (`tests/harness/FakeForgeHub`). The full integration backlog item #3 ("end-to-end integration test") is **done**; backlog item #4 ("forge hub registration verification") is **partially done** — the wire contract is exercised in-memory; a live-hub smoke against `/Users/reh3376/forge`'s docker-compose stack remains.
 
 | Pillar | Phase | Where it lives | Concrete classes |
 |--------|-------|----------------|-------------------|
@@ -57,11 +57,11 @@ PYTHONPATH=/Users/reh3376/forge/src .venv/bin/pytest -q
    - have the coordinator write each setpoint to the corresponding Logix `MPC_CV_Target` tag via its own `PlcLink`.
    Pick one, implement it, write the integration test below.
 
-3. **End-to-end integration test.** A single test that wires `PlantCoordinator → N FakeSupervisors → FakeAdapter`, drives a few cycles, and asserts: (a) the coordinator's setpoints reach each supervisor, (b) each supervisor's `control_move` records reach the adapter's queue, (c) the coordinator's `optimization_decision` records reach the adapter's queue, (d) the adapter's `collect()` yields all of them as well-formed `ContextualRecord`s. This proves the architecture end-to-end and lands somewhere like `tests/test_end_to_end.py`.
+3. **End-to-end integration test.** ✅ **DONE.** `tests/harness/FakeForgeHub` + the four `tests/test_forge_*.py` files exercise the full lifecycle (register → configure → start → stream → stop), the Pydantic ↔ proto round-trip for the manifest and every record variant the spoke emits (`control_move`, `mode_change`, `control_released`, `optimization_decision`, `optimization_fault`), the supervisor-driven live mode, and the error paths. The harness uses forge's own `InMemoryServicer` + `InMemoryChannel` + `GrpcTransportAdapter` so the same serialization path the live hub takes is on the wire. **Side-effect** of writing it: the harness surfaced a real bug where `src/plc_workflows_mpc/context.py` was dropping all rich payload fields (`from`/`to`/`reason` on `mode_change`, `objective_name`/`setpoints`/`iterations` on `optimization_decision`); fixed by making the context builder pass-through unknown fields into `RecordContext.extra`.
 
 ### Medium priority — readiness for first deployment
 
-4. **Forge hub registration verification.** We've coded against `forge.adapters.base.interface.AdapterBase` but never registered with a running forge hub. Start the hub from `/Users/reh3376/forge` (see its `docker-compose.yml`), point the adapter at `grpc://localhost:50051`, and verify `Register` / `Configure` / `Start` complete and the manifest validates against the FACTS schema. Update the FACTS spec if the hub rejects anything.
+4. **Forge hub registration verification.** ⚠️ **PARTIAL.** The wire contract (manifest + record proto round-trip + RPC dispatch shape) is now verified in-memory via the harness above — `tests/test_forge_serialization.py` pins down every manifest field and every record variant. **Still open:** the live-hub smoke. Start the hub from `/Users/reh3376/forge` (see its `docker-compose.yml`), wrap `PlcWorkflowsMpcAdapter` in `forge.transport.GrpcTransportAdapter` against a real-gRPC `TransportChannel`, point it at `grpc://localhost:50051`, and verify the spoke registers and a single `Collect` stream completes. Update the FACTS spec if the hub rejects anything in production that the in-memory servicer accepted.
 
 5. **Real-PLC commissioning smoke test.** Once an integrator has a Logix controller available, the procedure should be: import `plc/templates/TAGS.csv` + `MPC_Supervisor.st`, run the spoke with `dry_run=true` against the PLC for one cycle, confirm the heartbeat advances and records emit correctly, then flip `dry_run=false` and write a benign setpoint. Document the procedure as `docs/COMMISSIONING.md`.
 

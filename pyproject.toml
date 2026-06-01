@@ -21,6 +21,14 @@ apc = [
     "pycomm3>=1.2.14",
     "osqp>=1.0",
 ]
+# Live gRPC client (forge hub ↔ spoke wire protocol). Required by
+# scripts/forge_smoke.py and the optional tests/test_forge_live_grpc.py.
+# forge-platform itself depends on grpcio; this extra exists for installs
+# that pin only what the live wire path needs.
+grpc = [
+    "grpcio>=1.60.0",
+    "protobuf>=5.27.0",
+]
 dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.25.0",
@@ -63,7 +71,7 @@ files = ["src"]
 disallow_subclassing_any = false
 
 [[tool.mypy.overrides]]
-module = ["forge.*", "scipy.*", "pycomm3.*", "osqp.*", "lxml.*"]
+module = ["forge.*", "scipy.*", "pycomm3.*", "osqp.*", "lxml.*", "grpc.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

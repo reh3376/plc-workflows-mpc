@@ -2,7 +2,7 @@
 
 A **Forge spoke module** for OT-side **advanced process control**, **PLC software-development lifecycle (SDLC)**, and **plant-wide optimization**.
 
-> Status: **All four pillars shipped + forge-core integration harness in place.** Phases 0–4 deliver the adapter, FOPDT/SOPDT identification + PID/APC/MPC selection, OSQP-backed `LinearMpcController` + `SupervisorRunner` + `LogixLink`, L5X ↔ JSON SDLC tooling + GitHub Actions generator + PLC-side templates, and the SLSQP-backed `ScipyOptimizer` + threaded periodic `PlantCoordinator`. The forge hub ↔ spoke wire contract is now exercised end-to-end via `tests/harness/FakeForgeHub` (manifest + every `ContextualRecord` variant round-trips through forge's `pydantic_to_proto` / `InMemoryChannel` / `InMemoryServicer`). 180 tests, ruff + mypy strict clean.
+> Status: **All four pillars shipped + forge-core integration harness + real-gRPC smoke.** Phases 0–4 deliver the adapter, FOPDT/SOPDT identification + PID/APC/MPC selection, OSQP-backed `LinearMpcController` + `SupervisorRunner` + `LogixLink`, L5X ↔ JSON SDLC tooling + GitHub Actions generator + PLC-side templates, and the SLSQP-backed `ScipyOptimizer` + threaded periodic `PlantCoordinator`. The forge hub ↔ spoke wire contract is verified end-to-end via `tests/harness/FakeForgeHub` (in-memory) and `tests/test_forge_live_grpc.py` (real gRPC over a loopback socket against `GrpcServer(InMemoryServicer)`), plus a runnable `scripts/forge_smoke.py` for live-hub commissioning ([`docs/COMMISSIONING.md`](docs/COMMISSIONING.md)). 184 tests, ruff + mypy strict clean.
 >
 > **Picking the project back up?** Read [`docs/STATUS.md`](docs/STATUS.md) — current state, how to verify locally, and a prioritized backlog of the integration items that remain.
 >
@@ -108,13 +108,20 @@ The runtime control stack — the Rockwell EtherNet/IP link (`pycomm3`) and the 
 
 ### Verifying the forge wire contract
 
-A test harness simulates forge-core in memory using forge's own `InMemoryServicer` / `InMemoryChannel` / `GrpcTransportAdapter`. Run just the integration tests with:
+A test harness simulates forge-core in memory using forge's own `InMemoryServicer` / `InMemoryChannel` / `GrpcTransportAdapter`, plus a real-gRPC variant that boots `GrpcServer` on a loopback socket. Install the `grpc` extra once (`uv pip install -e ".[grpc,dev]"`) and run:
 
 ```bash
 PYTHONPATH=/path/to/forge/src .venv/bin/pytest -q tests/test_forge_*.py
 ```
 
-See [`docs/STATUS.md`](docs/STATUS.md) for the design and [`tests/harness/hub.py`](tests/harness/hub.py) for `FakeForgeHub` itself.
+For a live smoke against a *real* running forge hub (local docker-compose or remote endpoint), use the runnable script:
+
+```bash
+PYTHONPATH=/path/to/forge/src .venv/bin/python scripts/forge_smoke.py \
+    --hub-endpoint host:50051
+```
+
+The full commissioning procedure is in [`docs/COMMISSIONING.md`](docs/COMMISSIONING.md).
 
 ## Roadmap
 

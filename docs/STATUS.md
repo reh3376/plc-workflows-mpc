@@ -5,9 +5,9 @@
 | | |
 |--|--|
 | **Last updated** | 2026-06-01 |
-| **Last commit on `main`** | *latest after Phase 5 commit — forge-core test harness + context.py pass-through fix* |
-| **Phase complete** | Phase 4 of 4 — all four pillars; **Phase 5 (forge-core integration harness) now done too** |
-| **Quality gates** | `ruff` ✓ • `mypy --strict` ✓ (33 source files) • `pytest` ✓ (180 passed, 1 unrelated warning) |
+| **Last commit on `main`** | *latest after live-hub smoke commit — real-gRPC integration tests + runnable smoke script + commissioning doc* |
+| **Phase complete** | Phase 4 of 4 — all four pillars; **Phase 5 (forge-core integration harness + real-gRPC smoke) done** |
+| **Quality gates** | `ruff` ✓ • `mypy --strict` ✓ (33 source files) • `pytest` ✓ (184 passed, 1 unrelated warning) |
 | **Branch model** | trunk on `main`, conventional commits, no open branches |
 
 ## Where we are
@@ -61,7 +61,7 @@ PYTHONPATH=/Users/reh3376/forge/src .venv/bin/pytest -q
 
 ### Medium priority — readiness for first deployment
 
-4. **Forge hub registration verification.** ⚠️ **PARTIAL.** The wire contract (manifest + record proto round-trip + RPC dispatch shape) is now verified in-memory via the harness above — `tests/test_forge_serialization.py` pins down every manifest field and every record variant. **Still open:** the live-hub smoke. Start the hub from `/Users/reh3376/forge` (see its `docker-compose.yml`), wrap `PlcWorkflowsMpcAdapter` in `forge.transport.GrpcTransportAdapter` against a real-gRPC `TransportChannel`, point it at `grpc://localhost:50051`, and verify the spoke registers and a single `Collect` stream completes. Update the FACTS spec if the hub rejects anything in production that the in-memory servicer accepted.
+4. **Forge hub registration verification.** ✅ **DONE (in-process gRPC) + procedure for real-hub.** `tests/test_forge_live_grpc.py` boots `GrpcServer(InMemoryServicer)` on a free port and drives the spoke through `GrpcChannel` over a real socket — exercises actual binary protobuf marshaling on every test run. Found one gotcha in the process: protobuf `map<string, string>` rejects `None`, which `InMemoryChannel` tolerated; documented in `docs/COMMISSIONING.md`. For the remaining "wire it to forge's actual docker-compose stack" step, run `scripts/forge_smoke.py --hub-endpoint <host>:50051` after `docker compose -f /Users/reh3376/forge/deploy/docker/docker-compose.yml up -d` — the procedure is documented end-to-end in `docs/COMMISSIONING.md`.
 
 5. **Real-PLC commissioning smoke test.** Once an integrator has a Logix controller available, the procedure should be: import `plc/templates/TAGS.csv` + `MPC_Supervisor.st`, run the spoke with `dry_run=true` against the PLC for one cycle, confirm the heartbeat advances and records emit correctly, then flip `dry_run=false` and write a benign setpoint. Document the procedure as `docs/COMMISSIONING.md`.
 
